@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!-->
+<html class="no-js" lang="en">
+<!--<![endif]-->
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title></title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="">
+  <!-- jquery -->
+  <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+    integrity="sha256-pasqAKBDmFT4eHoN2ndd6lN370kFiGUFyTiUHWhU7k8=" crossorigin="anonymous"></script>
+  <!-- kakao map -->
+  <script type="text/javascript"
+    src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=90e82b15cc524d23b3d5db4be13a3028"></script>
+  <!-- bootstrap -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <!-- main scripts -->
+  <script>
+    let curAlert;
+    let alertTimeout;
+    function bAlert(msg) {
+      if (curAlert) curAlert.alert('close');
+      if (alertTimeout) clearTimeout(alertTimeout);
+      $('#alert').html(`
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        ${msg}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>`);
+      curAlert = $('.alert');
+      curAlert.alert();
+      alertTimeout = setTimeout(() => {
+        if (curAlert) curAlert.alert('close');
+      }, 2500);
+    }
+
+    let map;
+    const polygons = [];
+    function onGeoJsonUpdate() {
+      const color = ['#f00', '#0f0', '#00f'];
+      const commonStyle = {
+        fillOpacity: 0.33,
+        strokeWeight: 1,
+        strokeOpacity: 0.75,
+        strokeStyle: 'solid'
+      }
+      const geoJsonStr = $('textarea#geojson').val();
+      let geoJson = {};
+      try {
+        polygons.forEach(p => {
+          p.setMap(null);
+        });
+        geoJson = JSON.parse(geoJsonStr);
+        if (geoJson.type === ('MultiPolygon')) {
+          geoJson.coordinates.forEach((poly, idx) => {
+            const polyColor = idx < 3 ? color[idx] : '#f00';
+            polygons.push(new kakao.maps.Polygon({
+              map,
+              path: poly.map(m => m.map(c => new kakao.maps.LatLng(c[1], c[0]))),
+              fillColor: polyColor,
+              strokeColor: polyColor,
+              ...commonStyle,
+            }));
+          });
+          map.panTo(new kakao.maps.LatLng(geoJson.coordinates[0][0][0][1], geoJson.coordinates[0][0][0][0]))
+        } else if (geoJson.type === ('Polygon')) {
+          polygons.push(new kakao.maps.Polygon({
+            map,
+            path: geoJson.coordinates.map(m => m.map(c => new kakao.maps.LatLng(c[1], c[0]))),
+            fillColor: color[0],
+            strokeColor: color[0],
+            ...commonStyle,
+          }));
+          map.panTo(new kakao.maps.LatLng(geoJson.coordinates[0][0][1], geoJson.coordinates[0][0][0]))
+        }
+      } catch (error) {
+        // console.error('invalid geojson', error);
+        bAlert('invalid GeoJSON');
+      }
+    }
+  </script>
+  <style>
+    html,
+    body {
+      height: 100%
+    }
+
+    .alert {
+      position: absolute;
+      left: 25%;
+      top: 4%;
+      z-index: 123;
+      width: 50%;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body style='padding: 0; border: 0; margin: 0;'>
+  <div id="map" style="width:100%;height:100%;"></div>
+  <textarea id="geojson" style="width: 95%; position: absolute; top: 1.5em; left: 2.5%; z-index: 111;" rows="20"
+    onchange="onGeoJsonUpdate()" onkeyup="
+    onGeoJsonUpdate()" placeholder="paste geojson geometry object here (Polygon / MultiPolygon supported)"></textarea>
+
+  <div id="alert"></div>
+
+  <script>
+    var mapContainer = document.getElementById('map'),
+      mapOption = {
+        center: new kakao.maps.LatLng(37.623718452, 127.085106053),
+        level: 1,
+        mapTypeId: kakao.maps.MapTypeId.ROADMAP
+      };
+    map = new kakao.maps.Map(mapContainer, mapOption);
+  </script>
+  <!-- bootstrap -->
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+    integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+    integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+    crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+    integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+    crossorigin="anonymous"></script>
+
+</body>
+
+</html>
